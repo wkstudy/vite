@@ -69,6 +69,7 @@ export async function compileCss(
 ): Promise<SFCStyleCompileResults | string> {
   const id = hash_sum(publicPath)
   const postcssConfig = await loadPostcssConfig(root, isBuild)
+  // wk 使用@vue.compiler-sfc里的compiler对css进行解析
   const { compileStyleAsync } = resolveCompiler(root)
 
   if (

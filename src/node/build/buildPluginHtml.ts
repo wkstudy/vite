@@ -20,6 +20,7 @@ import {
   AttributeNode
 } from '@vue/compiler-dom'
 
+// wk 对html的处理
 export const createBuildHtmlPlugin = async (
   root: string,
   indexPath: string,
@@ -38,6 +39,7 @@ export const createBuildHtmlPlugin = async (
   }
 
   const rawHtml = await fs.readFile(indexPath, 'utf-8')
+  // wk 对html进行处理
   const preprocessedHtml = await transformIndexHtml(
     rawHtml,
     config.indexHtmlTransforms,
@@ -45,6 +47,7 @@ export const createBuildHtmlPlugin = async (
     true
   )
   const assets = new Map<string, Buffer>()
+  // wk 对htm进行ast解析，拿出js（作为rolllup的entry）、assets（方便后续rollup的各种处理）
   let { html: processedHtml, js } = await compileHtml(
     root,
     preprocessedHtml,
@@ -58,12 +61,14 @@ export const createBuildHtmlPlugin = async (
   const htmlPlugin: Plugin = {
     name: 'vite:html',
     async load(id) {
+      // wk 访问html的时候返回对应的js
       if (id === indexPath) {
         return js
       }
     },
 
     generateBundle(_options, bundle) {
+      // wk 把资源记录到bundle里
       registerAssets(assets, bundle)
     }
   }
@@ -104,6 +109,7 @@ export const createBuildHtmlPlugin = async (
     }
   }
 
+  // 把生成的各种资源写入到html里
   const renderIndex = async (bundleOutput: RollupOutput['output']) => {
     let result = processedHtml
     for (const chunk of bundleOutput) {
@@ -126,7 +132,7 @@ export const createBuildHtmlPlugin = async (
         }
       }
     }
-
+    // 最后再transform一遍已经转化完的html
     return await transformIndexHtml(
       result,
       config.indexHtmlTransforms,
@@ -153,6 +159,7 @@ const assetAttrsConfig: Record<string, string[]> = {
 
 // compile index.html to a JS module, importing referenced assets
 // and scripts
+// wk 用@vue/compiler-dom对html进行ast解析，将js 、assets记录下来供后续rollup处理
 const compileHtml = async (
   root: string,
   html: string,
@@ -237,6 +244,7 @@ const compileHtml = async (
   // references the post-build location.
   for (const attr of assetUrls) {
     const value = attr.value!
+
     const { fileName, content, url } = await resolveAsset(
       resolver.requestToFile(value.content),
       root,
@@ -244,6 +252,7 @@ const compileHtml = async (
       assetsDir,
       cleanUrl(value.content).endsWith('.css') ? 0 : inlineLimit
     )
+    // wk assets 记录为能访问到该资源的url
     s.overwrite(value.loc.start.offset, value.loc.end.offset, `"${url}"`)
     if (fileName && content) {
       assets.set(fileName, content)

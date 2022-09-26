@@ -482,7 +482,7 @@ export type ResolvedConfig = UserConfig & {
 }
 
 const debug = require('debug')('vite:config')
-
+// wk 生成配置
 export async function resolveConfig(mode: string, configPath?: string) {
   const start = Date.now()
   const cwd = process.cwd()
@@ -525,6 +525,7 @@ export async function resolveConfig(mode: string, configPath?: string) {
       }
     }
 
+    // wk 配置如果是ts，需要通过rollup进行转化为js才能执行
     if (!userConfig) {
       // 2. if we reach here, the file is ts or using es import syntax, or
       // the user has type: "module" in their package.json (#917)

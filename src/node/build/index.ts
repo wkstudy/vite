@@ -171,8 +171,10 @@ export async function createBaseRollupPlugins(
     // vite:resolve
     createBuildResolvePlugin(root, resolver),
     // vite:esbuild
+    // wk 使用esbuild进行transform
     enableEsbuild ? await createEsbuildPlugin(options.jsx) : null,
     // vue
+    // wk 调用 rollup-plugin-vue
     enableRollupPluginVue ? await createVuePlugin(root, options) : null,
     require('@rollup/plugin-json')({
       preferConst: true,
@@ -181,6 +183,7 @@ export async function createBaseRollupPlugins(
       namedExports: true
     }),
     // user transforms
+    // wk 进行transform
     ...(transforms.length || Object.keys(vueCustomBlockTransforms).length
       ? [createBuildJsTransformPlugin(transforms, vueCustomBlockTransforms)]
       : []),
@@ -424,7 +427,7 @@ async function doBuild(options: Partial<BuildConfig>): Promise<BuildResult[]> {
     config.alias,
     config.assetsInclude
   )
-
+  // wk 对html的处理
   const { htmlPlugin, renderIndex } = await createBuildHtmlPlugin(
     root,
     indexPath,
@@ -470,6 +473,7 @@ async function doBuild(options: Partial<BuildConfig>): Promise<BuildResult[]> {
     DEV: resolvedMode !== 'production',
     PROD: resolvedMode === 'production'
   }
+  // wk 注入环境变量
   const builtInEnvReplacements: Record<string, string> = {}
   Object.keys(builtInClientEnv).forEach((key) => {
     builtInEnvReplacements[`import.meta.env.${key}`] = JSON.stringify(
@@ -602,7 +606,7 @@ async function doBuild(options: Partial<BuildConfig>): Promise<BuildResult[]> {
           createEmitPlugin(emitAssets, async (assets, name) => {
             // #1071 ignore bundles from rollup-plugin-worker-loader
             if (name !== outputOptions.name) return
-
+            // wk 生成最终的html
             const html = emitIndex ? await renderIndex(assets) : ''
 
             result = { build, assets, html }

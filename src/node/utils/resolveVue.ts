@@ -98,5 +98,6 @@ export function resolveVue(root: string): ResolvedVuePaths {
 }
 
 export function resolveCompiler(cwd: string): typeof sfcCompiler {
+  // wk 使用@vue.compiler-sfc里的compiler
   return require(resolveVue(cwd).compiler)
 }

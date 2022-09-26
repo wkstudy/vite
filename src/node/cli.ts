@@ -137,7 +137,7 @@ async function resolveOptions({
   if (argv.jsxFactory || argv.jsxFragment) {
     argv.jsx = { factory: argv.jsxFactory, fragment: argv.jsxFragment }
   }
-
+  // wk 生成配置
   const userConfig = await resolveConfig(
     argv.mode || defaultMode,
     argv.config || argv.c

@@ -73,6 +73,7 @@ export const resolveAsset = async (
   return resolved
 }
 
+// wk 把资源记录到bundle里
 export const registerAssets = (
   assets: Map<string, Buffer>,
   bundle: OutputBundle
@@ -99,6 +100,7 @@ export const createBuildAssetPlugin = (
 
   return {
     name: 'vite:asset',
+    // wk把资源基座可以访问到该资源的url，然后把url转为一个js模块
     async load(id) {
       if (resolver.isAssetRequest(id)) {
         let { fileName, content, url } = await resolveAsset(

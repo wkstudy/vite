@@ -62,7 +62,8 @@ export const createBuildCssPlugin = ({
 
         const result = isVueStyle
           ? css
-          : await compileCss(
+          : // wk 使用@vue.compiler-sfc里的compiler 对css进行解析
+            await compileCss(
               root,
               id,
               {
@@ -93,6 +94,7 @@ export const createBuildCssPlugin = ({
 
         // process url() - register referenced files as assets
         // and rewrite the url to the resolved public path
+        // wk 转化css里所有url()路径
         if (urlRE.test(css)) {
           const fileDir = path.dirname(id)
           css = await rewriteCssUrls(css, async (rawUrl) => {
@@ -126,6 +128,7 @@ export const createBuildCssPlugin = ({
 
         styles.set(id, css)
         return {
+          // wk css转化为一个js模块   export defalut `一个可以访问到css的资源`
           code: modules
             ? dataToEsm(modules, { namedExports: true })
             : (cssCodeSplit
@@ -169,6 +172,7 @@ export const createBuildCssPlugin = ({
         // for each dynamic entry chunk, collect its css and inline it as JS
         // strings.
         if (chunk.isDynamicEntry && chunkCSS) {
+          // wk 动态插入的css 是通过document.createment('style')的方式写入的
           chunkCSS = minifyCSS(chunkCSS)
           code =
             `let ${cssInjectionMarker} = document.createElement('style');` +
