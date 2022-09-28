@@ -63,12 +63,15 @@ export function createServer(config: ServerConfig): Server {
   } = config
 
   const app = new Koa<State, Context>()
+  // wk 起一个http(s)
   const server = resolveServer(config, app.callback())
+  // wk 监听文件改动
   const watcher = chokidar.watch(root, {
     ignored: ['**/node_modules/**', '**/.git/**'],
     ignoreInitial: true,
     ...chokidarWatchOptions
   }) as HMRWatcher
+  // wk 关于路径的解析
   const resolver = createResolver(root, resolvers, alias, assetsInclude)
 
   const context: ServerPluginContext = {
@@ -133,6 +136,7 @@ export function createServer(config: ServerConfig): Server {
   const listen = server.listen.bind(server)
   server.listen = (async (port: number, ...args: any[]) => {
     if (optimizeDeps.auto !== false) {
+      // wk vite 预构建
       await require('../optimizer').optimizeDeps(config)
     }
     return listen(port, ...args)
@@ -145,6 +149,7 @@ export function createServer(config: ServerConfig): Server {
   return server
 }
 
+// wk 起一个http(s)
 function resolveServer(
   { https = false, httpsOptions = {}, proxy }: ServerConfig,
   requestListener: RequestListener

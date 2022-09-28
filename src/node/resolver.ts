@@ -48,11 +48,13 @@ export const mainFields = ['module', 'jsnext', 'jsnext:main', 'browser', 'main']
 const defaultRequestToFile = (publicPath: string, root: string): string => {
   if (moduleRE.test(publicPath)) {
     const id = publicPath.replace(moduleRE, '')
+    // wk 先从缓存中找
     const cachedNodeModule = moduleIdToFileMap.get(id)
     if (cachedNodeModule) {
       return cachedNodeModule
     }
     // try to resolve from optimized modules
+    // wk  从optimize生成的目录里找文件
     const optimizedModule = resolveOptimizedModule(root, id)
     if (optimizedModule) {
       return optimizedModule
@@ -64,6 +66,7 @@ const defaultRequestToFile = (publicPath: string, root: string): string => {
       return nodeModule
     }
   }
+  // wk public里找
   const publicDirPath = path.join(root, 'public', publicPath.slice(1))
   if (fs.existsSync(publicDirPath)) {
     return publicDirPath
@@ -91,6 +94,7 @@ const isFile = (file: string): boolean => {
  * returning undefined indicates the filePath is not fuzzy:
  * it is already an exact file path, or it can't match any file
  */
+// wk 补全路径（尾部）
 const resolveFilePathPostfix = (filePath: string): string | undefined => {
   const cleanPath = cleanUrl(filePath)
   if (!isFile(cleanPath)) {
@@ -128,6 +132,7 @@ export function createResolver(
   const literalAlias: Record<string, string> = {}
   const literalDirAlias: Record<string, string> = {}
 
+  // wk 处理项目定义的alias，找到正确的路径
   const resolveAlias = (alias: Record<string, string>) => {
     for (const key in alias) {
       let target = alias[key]
@@ -166,10 +171,11 @@ export function createResolver(
   })
   resolveAlias(userAlias)
 
-  const requestToFileCache = new Map<string, string>()
-  const fileToRequestCache = new Map<string, string>()
+  const requestToFileCache = new Map<string, string>() // wk 请求路径（访问路径）=》 真实路径（文件路径）
+  const fileToRequestCache = new Map<string, string>() // wk 文件路径 =》 访问路径
 
   const resolver: InternalResolver = {
+    // wk  访问路径 => 真实路径
     requestToFile(publicPath) {
       publicPath = decodeURIComponent(publicPath)
       if (requestToFileCache.has(publicPath)) {
@@ -185,8 +191,10 @@ export function createResolver(
         }
       }
       if (!resolved) {
+        //  wk 从 optimzie的目录、node_modules 、public等目录里找
         resolved = defaultRequestToFile(publicPath, root)
       }
+      // wk 补全路径（尾部）
       const postfix = resolveFilePathPostfix(resolved)
       if (postfix) {
         if (postfix[0] === '/') {
@@ -198,7 +206,7 @@ export function createResolver(
       requestToFileCache.set(publicPath, resolved)
       return resolved
     },
-
+    // wk 文件路径 =》 访问路径
     fileToRequest(filePath) {
       if (fileToRequestCache.has(filePath)) {
         return fileToRequestCache.get(filePath)!
@@ -325,6 +333,7 @@ export function createResolver(
       }
     },
 
+    // wk 请求public目录
     isPublicRequest(publicPath: string) {
       return resolver
         .requestToFile(publicPath)
@@ -438,6 +447,7 @@ export function resolveBareModuleRequest(
 
 const viteOptimizedMap = new Map()
 
+// wk  从optimize生成的目录里找文件
 export function resolveOptimizedModule(
   root: string,
   id: string
@@ -470,6 +480,7 @@ interface NodeModuleInfo {
 const nodeModulesInfoMap = new Map<string, NodeModuleInfo>()
 const nodeModulesFileMap = new Map()
 
+// wk 返回入口文件路径
 export function resolveNodeModule(
   root: string,
   id: string,
@@ -504,6 +515,7 @@ export function resolveNodeModule(
     // or we will have to implement that logic in vite's own resolve plugin.
 
     if (!entryPoint) {
+      // wk 入口文件
       for (const field of mainFields) {
         if (typeof pkg[field] === 'string') {
           entryPoint = pkg[field]

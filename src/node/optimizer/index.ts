@@ -82,10 +82,10 @@ export async function optimizeDeps(
     log(`package.json not found. Skipping.`)
     return
   }
-
+  // wk 返回optimize存储的目录 也就是  "node_modules/.vite_opt_cache
   const cacheDir = resolveOptimizedCacheDir(root, pkgPath)!
   const hashPath = path.join(cacheDir, 'hash')
-  const depHash = getDepHash(root, config.__path)
+  const depHash = getDepHash(root, config.__path) // wk 由package.lock.json + package.json里的dependence + vite.config.js 计算出一个hash
 
   if (!config.force) {
     let prevhash
@@ -94,11 +94,12 @@ export async function optimizeDeps(
     } catch (e) {}
     // hash is consistent, no need to re-bundle
     if (prevhash === depHash) {
+      // wk 说明依赖没有更新，不需要重新optimize
       log('Hash is consistent. Skipping. Use --force to override.')
       return
     }
   }
-
+  // wk 清除optimize的内容
   await fs.remove(cacheDir)
   await fs.ensureDir(cacheDir)
 
@@ -110,13 +111,14 @@ export async function optimizeDeps(
     config.assetsInclude
   )
 
+  // wk 只 pre-bundle以下内容
   // Determine deps to optimize. The goal is to only pre-bundle deps that falls
   // under one of the following categories:
   // 1. Has imports to relative files (e.g. lodash-es, lit-html)
   // 2. Has imports to bare modules that are not in the project's own deps
   //    (i.e. esm that imports its own dependencies, e.g. styled-components)
-  await init
-  const { qualified, external } = resolveQualifiedDeps(root, options, resolver)
+  await init // wk 语法分析
+  const { qualified, external } = resolveQualifiedDeps(root, options, resolver) // wk 需要进行optimize的dependency和不需要的optimize的dependency
 
   // Resolve deps from linked packages in a monorepo
   if (options.link) {
@@ -142,6 +144,7 @@ export async function optimizeDeps(
     })
   }
 
+  // wk 用户配置的需要optimize的包也需要记录
   // Force included deps - these can also be deep paths
   if (options.include) {
     options.include.forEach((id) => {
@@ -192,6 +195,7 @@ export async function optimizeDeps(
     ...rollupInputOptions
   } = config.rollupInputOptions || {}
 
+  // wk 进行bundle
   try {
     const rollup = require('rollup') as typeof Rollup
 
@@ -275,6 +279,7 @@ interface FilteredDeps {
   external: string[]
 }
 
+// wk 返回需要optimize和不需要optimize的依赖
 function resolveQualifiedDeps(
   root: string,
   options: DepOptimizationOptions,
@@ -313,6 +318,7 @@ function resolveQualifiedDeps(
       debug(`skipping ${id} (ts declaration)`)
       return false
     }
+    // wk 该依赖的入口文件
     const pkgInfo = resolveNodeModule(root, id, resolver)
     if (!pkgInfo || !pkgInfo.entryFilePath) {
       debug(`skipping ${id} (cannot resolve entry)`)
@@ -338,6 +344,7 @@ function resolveQualifiedDeps(
       )
       return false
     }
+    // wk 依赖的入口文件
     const content = fs.readFileSync(entryFilePath, 'utf-8')
     const [imports, exports] = parse(content)
     if (!exports.length && !/export\s+\*\s+from/.test(content)) {
@@ -395,11 +402,12 @@ export function getDepHash(
   if (configPath) {
     content += fs.readFileSync(configPath, 'utf-8')
   }
+  // wk  package.lock.json + package.json里的dependence + vite.config.js 共同生成hash
   return createHash('sha1').update(content).digest('base64')
 }
 
 const cacheDirCache = new Map<string, string | null>()
-
+// wk 返回optimize存储的目录 也就是  "node_modules/.vite_opt_cache
 export function resolveOptimizedCacheDir(
   root: string,
   pkgPath?: string

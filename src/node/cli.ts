@@ -182,6 +182,7 @@ function runServe(options: UserConfig) {
     }
   })
 
+  // wk 终端上展示ip
   server.listen(port, () => {
     console.log()
     console.log(`  Dev server running at:`)

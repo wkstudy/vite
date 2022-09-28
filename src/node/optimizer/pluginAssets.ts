@@ -41,6 +41,7 @@ export const createDepAssetPlugin = (
               se: statementEnd
             } = imports[i]
             if (dynamicIndex === -1) {
+              // wk 修改optimize里的import 资源的路径
               const importee = code.slice(start, end)
               if (isCSSRequest(importee) || resolver.isAssetRequest(importee)) {
                 // replace css/asset imports to deep imports to their original
