@@ -10,6 +10,10 @@ export const clientPublicPath = `/vite/client`
 
 const legacyPublicPath = '/vite/hmr'
 
+/**
+ * wk 注入client.js到浏览器中，以便后续的hmr
+ * @param param0
+ */
 export const clientPlugin: ServerPlugin = ({ app, config }) => {
   const clientCode = fs
     .readFileSync(clientFilePath, 'utf-8')

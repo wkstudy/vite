@@ -23,6 +23,7 @@ export const htmlRewritePlugin: ServerPlugin = ({
   resolver,
   config
 }) => {
+  // wk html注入client，方便进行hmr
   const devInjectionCode = `\n<script type="module">import "${clientPublicPath}"</script>\n`
   const scriptRE = /(<script\b[^>]*type\s*=\s*(?:"module"|'module')[^>]*>)([\s\S]*?)<\/script>/gm
   const srcRE = /\bsrc=(?:"([^"]+)"|'([^']+)'|([^'"\s]+)\b)/
@@ -51,6 +52,7 @@ export const htmlRewritePlugin: ServerPlugin = ({
             cleanUrl(path.posix.resolve('/', srcAttr[1] || srcAttr[2]))
           )
           debugHmr(`        ${importer} imports ${importee}`)
+          // wk 将请求路径importer 和访问路径importee的关系记录下来
           ensureMapEntry(importerMap, importee).add(importer)
         }
         return matched
@@ -88,6 +90,7 @@ export const htmlRewritePlugin: ServerPlugin = ({
   })
 
   watcher.on('change', (file) => {
+    // wk html改变的时候需要 full-reloaded
     const path = resolver.fileToRequest(file)
     if (path.endsWith('.html')) {
       debug(`${path}: cache busted`)

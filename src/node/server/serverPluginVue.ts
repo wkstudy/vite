@@ -75,6 +75,7 @@ export const vuePlugin: ServerPlugin = ({
     seenUrls.add(ctx.url)
   }
 
+  // wk 将vue 的template script style分别编译并返回
   app.use(async (ctx, next) => {
     // ctx.vue is set by other tools like vitepress so that vite knows to treat
     // non .vue files as vue files.
@@ -228,6 +229,7 @@ export const vuePlugin: ServerPlugin = ({
       !isEqualBlock(descriptor.script, prevDescriptor.script) ||
       !isEqualBlock(descriptor.scriptSetup, prevDescriptor.scriptSetup)
     ) {
+      // wk vue里的script改变的话会执行vue-reload
       return sendReload()
     }
 
@@ -237,6 +239,7 @@ export const vuePlugin: ServerPlugin = ({
       if (prevDescriptor.scriptSetup && descriptor.scriptSetup) {
         vueCache.get(filePath)!.script = cacheEntry!.script
       }
+      // wk template改变 =>vue-rerender
       needRerender = true
     }
 
@@ -248,6 +251,7 @@ export const vuePlugin: ServerPlugin = ({
     // css modules update causes a reload because the $style object is changed
     // and it may be used in JS. It also needs to trigger a vue-style-update
     // event so the client busts the sw cache.
+    // wk css modules改变=》 vue-reload
     if (
       prevStyles.some((s) => s.module != null) ||
       nextStyles.some((s) => s.module != null)
@@ -256,6 +260,7 @@ export const vuePlugin: ServerPlugin = ({
     }
 
     // force reload if CSS vars injection changed
+    // wk css vars 改变vue-reload
     if (descriptor.cssVars) {
       if (prevDescriptor.cssVars.join('') !== descriptor.cssVars.join('')) {
         return sendReload()
@@ -278,12 +283,14 @@ export const vuePlugin: ServerPlugin = ({
     }
 
     // force reload if scoped status has changed
+    // wk scoped属性改变 => vue-reload
     if (prevStyles.some((s) => s.scoped) !== nextStyles.some((s) => s.scoped)) {
       return sendReload()
     }
 
     // only need to update styles if not reloading, since reload forces
     // style updates as well.
+    // wk 剩余情况执行style-update
     nextStyles.forEach((_, i) => {
       if (!prevStyles[i] || !isEqualBlock(prevStyles[i], nextStyles[i])) {
         didUpdateStyle = true
@@ -386,6 +393,13 @@ async function resolveSrcImport(
   return filePath
 }
 
+/**
+ * wk 解析parse content
+ * @param root
+ * @param filePath
+ * @param content
+ * @returns
+ */
 async function parseSFC(
   root: string,
   filePath: string,
@@ -450,6 +464,7 @@ async function compileSFCMain(
   const compiler = resolveCompiler(root)
   if ((descriptor.script || descriptor.scriptSetup) && compiler.compileScript) {
     try {
+      // wk compiler vue sfc
       script = compiler.compileScript(descriptor, {
         id
       })
@@ -482,6 +497,7 @@ async function compileSFCMain(
   let hasCSSModules = false
   if (descriptor.styles) {
     descriptor.styles.forEach((s, i) => {
+      // wk 把sfc里的style 以import的方式引入
       const styleRequest = publicPath + `?type=style&index=${i}`
       if (s.scoped) hasScoped = true
       if (s.module) {
@@ -517,6 +533,7 @@ async function compileSFCMain(
   }
 
   if (descriptor.template) {
+    // wk 引入sfc里的template  (以import的方式引入)
     const templateRequest = publicPath + `?type=template`
     code += `\nimport { render as __render } from ${JSON.stringify(
       templateRequest
@@ -580,6 +597,7 @@ function compileSFCTemplate(
   }
 
   const id = hash_sum(publicPath)
+  // wk compiler sfc里的template
   const { code, map, errors } = compileTemplate({
     source: template.content,
     id,

@@ -23,6 +23,10 @@ const getDebugPath = (root: string, p: string) => {
 }
 
 // plugin for resolving /@modules/:id requests.
+/**
+ * wk 专门处理 /@modules 路径
+ * @param param0
+ */
 export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
   const vueResolved = resolveVue(root)
 
@@ -43,6 +47,7 @@ export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
       return next()
     }
 
+    // wk 特殊情况，没有安装vue，但是访问vue时可以从vite安装的里面访问
     // special handling for vue runtime in case it's not installed
     if (!vueResolved.isLocal && id in vueResolved) {
       return serve(id, (vueResolved as any)[id], 'non-local vue')
@@ -54,6 +59,7 @@ export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
       return serve(id, cachedPath, 'cached')
     }
 
+    // wk 有可能来自pre-bundle构建er
     // resolve from vite optimized modules
     const optimized = resolveOptimizedModule(root, id)
     if (optimized) {
@@ -71,7 +77,7 @@ export const moduleResolvePlugin: ServerPlugin = ({ root, app, resolver }) => {
       // do our best to reverse-infer the importer.
       importer = ctx.path.replace(/\.map$/, '')
     }
-
+    //  wk 加载map文件的没看懂
     const importerFilePath = importer ? resolver.requestToFile(importer) : root
     // #829 node package has sub-package(has package.json), should check it before `resolveNodeModuleFile`
     const nodeModuleInfo = resolveNodeModule(root, id, resolver)

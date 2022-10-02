@@ -2,6 +2,10 @@ import { ServerPlugin } from '.'
 import { readBody, isImportRequest } from '../utils'
 import { dataToEsm } from '@rollup/pluginutils'
 
+/**
+ * wk json包装为一个esm
+ * @param param0
+ */
 export const jsonPlugin: ServerPlugin = ({ app }) => {
   app.use(async (ctx, next) => {
     await next()

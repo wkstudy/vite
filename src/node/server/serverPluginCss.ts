@@ -20,6 +20,10 @@ import { dataToEsm } from '@rollup/pluginutils'
 
 export const debugCSS = require('debug')('vite:css')
 
+/**
+ * wk  css 处理， 把css变为js模块
+ * @param param0
+ */
 export const cssPlugin: ServerPlugin = ({ root, app, watcher, resolver }) => {
   app.use(async (ctx, next) => {
     await next()

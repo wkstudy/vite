@@ -8,6 +8,10 @@ import {
 } from '../esbuildService'
 import { readBody, cleanUrl } from '../utils'
 
+/**
+ * wk 处理 jsx|tsx 用esbuild进行将源码转化为js
+ * @param param0
+ */
 export const esbuildPlugin: ServerPlugin = ({ app, config, resolver }) => {
   const jsxConfig = resolveJsxOptions(config.jsx)
 

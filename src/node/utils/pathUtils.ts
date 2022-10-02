@@ -20,6 +20,11 @@ export const resolveFrom = (root: string, id: string) =>
 export const queryRE = /\?.*$/
 export const hashRE = /#.*$/
 
+/**
+ * wk 去掉url里的hash query
+ * @param url
+ * @returns
+ */
 export const cleanUrl = (url: string) =>
   url.replace(hashRE, '').replace(queryRE, '')
 

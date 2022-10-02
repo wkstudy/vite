@@ -5,6 +5,11 @@ import type { ServerOptions as HttpProxyServerOptions } from 'http-proxy'
 
 export type ProxiesOptions = IKoaProxiesOptions & HttpProxyServerOptions
 
+/**
+ * wk 原来proxy 就是这么实现的啊
+ * @param param0
+ * @returns
+ */
 export const proxyPlugin: ServerPlugin = ({ app, config, server }) => {
   if (!config.proxy) {
     return

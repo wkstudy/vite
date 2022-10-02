@@ -140,6 +140,7 @@ export function rewriteImports(
   try {
     let imports: ImportSpecifier[] = []
     try {
+      // wk 拿到source里的所有import
       imports = parseImports(source)[0]
     } catch (e) {
       console.error(
@@ -230,8 +231,10 @@ export function rewriteImports(
             // no need to track hmr client or module dependencies
             importee !== clientPublicPath
           ) {
+            // wk 把这个import语句的模块加入到currentImportees里
             currentImportees.add(importee)
             debugHmr(`        ${importer} imports ${importee}`)
+            // wk 把importer（访问的这个文件模块）加入到importerMap的importee（import语句的模块）里 和上面刚好相反
             ensureMapEntry(importerMap, importee).add(importer)
           }
         } else if (id !== 'import.meta' && !hasViteIgnore) {
@@ -258,6 +261,7 @@ export function rewriteImports(
 
       // since the importees may have changed due to edits,
       // check if we need to remove this importer from certain importees
+      // wk 如果当前文件把某条import语句删除了之后，也需要把importerMap里对应importid对应的值里删除这个访问的url
       if (prevImportees) {
         prevImportees.forEach((importee) => {
           if (!currentImportees.has(importee)) {
@@ -288,7 +292,15 @@ export function rewriteImports(
     return source
   }
 }
-
+/**
+ * wk 把importer变为文件绝对路径+扩展名+query+timestamp
+ * @param root
+ * @param importer
+ * @param id
+ * @param resolver
+ * @param timestamp
+ * @returns
+ */
 export const resolveImport = (
   root: string,
   importer: string,

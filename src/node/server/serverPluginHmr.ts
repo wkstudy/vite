@@ -52,9 +52,9 @@ export type HMRWatcher = FSWatcher & {
 type HMRStateMap = Map<string, Set<string>>
 
 export const hmrAcceptanceMap: HMRStateMap = new Map()
-export const hmrDeclineSet = new Set<string>()
-export const importerMap: HMRStateMap = new Map()
-export const importeeMap: HMRStateMap = new Map()
+export const hmrDeclineSet = new Set<string>() // wk 记录包含import.meta.hot 方法且有方法名为’decline‘的模块
+export const importerMap: HMRStateMap = new Map() // wk 与下面的importeeMap相反，key是访问模块中import语句的模块，value是当前访问的模块，即value依赖key
+export const importeeMap: HMRStateMap = new Map() // wk 记录的是某个模块和该模块中import的模块，即key依赖value
 
 // files that are dirty (i.e. in the import chain between the accept boundary
 // and the actual changed file) for an hmr update at a given timestamp.
@@ -102,6 +102,8 @@ export const hmrPlugin: ServerPlugin = ({
     const stringified = JSON.stringify(payload, null, 2)
     debugHmr(`update: ${stringified}`)
 
+    // wk 我的理解是服务启动的时候执行一遍plugin 此时启动一个服务端的websocket server, 此后每一个设备访问这个服务wss.clients里就多一个client，
+    // wk 那么每次有文件变化的话就需要通知到每个设备
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(stringified)
@@ -121,7 +123,7 @@ export const hmrPlugin: ServerPlugin = ({
     }
 
     const publicPath = resolver.fileToRequest(filePath)
-    const importers = importerMap.get(publicPath)
+    const importers = importerMap.get(publicPath) // wk 获取依赖publicPath的模块
     if (importers || isHmrAccepted(publicPath, publicPath)) {
       const hmrBoundaries = new Set<string>()
       const dirtyFiles = new Set<string>()
@@ -174,6 +176,7 @@ export const hmrPlugin: ServerPlugin = ({
     if (!(file.endsWith('.vue') || isCSSRequest(file))) {
       // everything except plain .css are considered HMR dependencies.
       // plain css has its own HMR logic in ./serverPluginCss.ts.
+      // wk vue文件和plain css文件在serverPluginVue 和 serverPluginCss文件中处理
       handleJSReload(file)
     }
   })
@@ -248,6 +251,14 @@ export function ensureMapEntry(map: HMRStateMap, key: string): Set<string> {
   return entry
 }
 
+/**
+ * wk 注入 hmr 以hmr相关的一些操作
+ * @param root
+ * @param source
+ * @param importer
+ * @param resolver
+ * @param s
+ */
 export function rewriteFileWithHMR(
   root: string,
   source: string,
@@ -396,6 +407,7 @@ export function rewriteFileWithHMR(
   ast.forEach((s) => checkStatements(s, true, false))
 
   // inject import.meta.hot
+  // wk 注入hmr
   s.prepend(
     `import { createHotContext } from "${clientPublicPath}"; ` +
       `import.meta.hot = createHotContext(${JSON.stringify(importer)}); `

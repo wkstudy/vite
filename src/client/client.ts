@@ -36,6 +36,7 @@ declare var __VUE_HMR_RUNTIME__: HMRRuntime
 const socketProtocol =
   __HMR_PROTOCOL__ || (location.protocol === 'https:' ? 'wss' : 'ws')
 const socketHost = `${__HMR_HOSTNAME__ || location.hostname}:${__HMR_PORT__}`
+// wk 启websocket
 const socket = new WebSocket(`${socketProtocol}://${socketHost}`, 'vite-hmr')
 
 function warnFailedFetch(err: Error, path: string | string[]) {
@@ -68,6 +69,7 @@ async function handleMessage(payload: HMRPayload) {
       setInterval(() => socket.send('ping'), __HMR_TIMEOUT__)
       break
     case 'vue-reload':
+      // wk 重新加载path  并执行__VUE_HMR_RUNTIME__.reload
       queueUpdate(
         import(`${path}?t=${timestamp}`)
           .catch((err) => warnFailedFetch(err, path))
@@ -86,6 +88,7 @@ async function handleMessage(payload: HMRPayload) {
       break
     case 'style-update':
       // check if this is referenced in html via <link>
+      // wk 重新请求style
       const el = document.querySelector(`link[href*='${path}']`)
       if (el) {
         el.setAttribute(
@@ -245,9 +248,11 @@ async function updateModule(
   const modulesToUpdate = new Set<string>()
   if (isSelfUpdate) {
     // self update - only update self
+    // wk 如果修改的模块本身就是热更新模块的话，只用调用本模块的热更新就可以了
     modulesToUpdate.add(id)
   } else {
     // dep update
+    // wk 把该模块中注册的所有deps（import.meta.hot.acceptDeps里调用的）都放到modulesToUpdate
     for (const { deps } of mod.callbacks) {
       if (Array.isArray(deps)) {
         deps.forEach((dep) => modulesToUpdate.add(dep))
@@ -269,6 +274,7 @@ async function updateModule(
       const disposer = disposeMap.get(dep)
       if (disposer) await disposer(dataMap.get(dep))
       try {
+        // wk 所有的这些deps进行重新import
         const newMod = await import(
           dep + (dep.includes('?') ? '&' : '?') + `t=${timestamp}`
         )
@@ -284,6 +290,7 @@ async function updateModule(
       if (Array.isArray(deps)) {
         fn(deps.map((dep) => moduleMap.get(dep)))
       } else {
+        // wk 执行用户在import.meta.hot.acceptDeps里定义的回调函数，函数参数即新import进来的吗module
         fn(moduleMap.get(deps))
       }
     }
@@ -302,7 +309,7 @@ interface HotCallback {
   fn: (modules: object | object[]) => void
 }
 
-const hotModulesMap = new Map<string, HotModule>()
+const hotModulesMap = new Map<string, HotModule>() // wk key是某个模块的id， value是{id,callback:[]} callback是该模块import.meta.hot.accept()里传的函数
 const disposeMap = new Map<string, (data: any) => void | Promise<void>>()
 const dataMap = new Map<string, any>()
 const customUpdateMap = new Map<string, ((customData: any) => void)[]>()
@@ -324,10 +331,12 @@ export const createHotContext = (id: string) => {
       return dataMap.get(id)
     },
 
+    //wk  把自己添加进hotModulesMap里
     accept(callback: HotCallback['fn'] = () => {}) {
       hot.acceptDeps(id, callback)
     },
 
+    // wk 把deps 添加进hotModulesMap里
     acceptDeps(
       deps: HotCallback['deps'],
       callback: HotCallback['fn'] = () => {}
