@@ -50,10 +50,12 @@ const rewriteCache = new LRUCache({ max: 1024 })
 // Plugin for rewriting served js.
 // - Rewrites named module imports to `/@modules/:id` requests, e.g.
 //   "vue" => "/@modules/vue"
+// wk 路径重写
 // - Rewrites files containing HMR code (reference to `import.meta.hot`) to
 //   inject `import.meta.hot` and track HMR boundary accept whitelists.
 // - Also tracks importer/importee relationship graph during the rewrite.
 //   The graph is used by the HMR plugin to perform analysis on file change.
+// wk 热更新逻辑注入 & 文件依赖关系importer/importee分析
 export const moduleRewritePlugin: ServerPlugin = ({
   root,
   app,

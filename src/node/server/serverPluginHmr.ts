@@ -51,9 +51,9 @@ export type HMRWatcher = FSWatcher & {
 // so that we can determine what files to hot reload
 type HMRStateMap = Map<string, Set<string>>
 
-export const hmrAcceptanceMap: HMRStateMap = new Map()
+export const hmrAcceptanceMap: HMRStateMap = new Map() // wk 文件语法分析时发现有调用import.meta.hot.accept(s)方法注册模块，就把注册的模块记录下来
 export const hmrDeclineSet = new Set<string>() // wk 记录包含import.meta.hot 方法且有方法名为’decline‘的模块
-export const importerMap: HMRStateMap = new Map() // wk 与下面的importeeMap相反，key是访问模块中import语句的模块，value是当前访问的模块，即value依赖key
+export const importerMap: HMRStateMap = new Map() // wk 与下面的importeeMap相反，key是访问模块中import语句的模块，value是当前访问的模块，即key被value使用了
 export const importeeMap: HMRStateMap = new Map() // wk 记录的是某个模块和该模块中import的模块，即key依赖value
 
 // files that are dirty (i.e. in the import chain between the accept boundary
@@ -123,10 +123,10 @@ export const hmrPlugin: ServerPlugin = ({
     }
 
     const publicPath = resolver.fileToRequest(filePath)
-    const importers = importerMap.get(publicPath) // wk 获取依赖publicPath的模块
+    const importers = importerMap.get(publicPath) // wk 获取被publicPath使用的模块
     if (importers || isHmrAccepted(publicPath, publicPath)) {
       const hmrBoundaries = new Set<string>()
-      const dirtyFiles = new Set<string>()
+      const dirtyFiles = new Set<string>() // wk 记录被影响了的文件
       dirtyFiles.add(publicPath)
 
       const hasDeadEnd = walkImportChain(
@@ -191,10 +191,12 @@ function walkImportChain(
 ): boolean {
   if (hmrDeclineSet.has(importee)) {
     // module explicitly declines HMR = dead end
+    // wk 调用了import.meta.hot.decline
     return true
   }
 
   if (isHmrAccepted(importee, importee)) {
+    // wk 自己就自己的hmrAcceptanceMap里的话，直接返回了
     // self-accepting module.
     hmrBoundaries.add(importee)
     dirtyFiles.add(importee)
@@ -205,8 +207,10 @@ function walkImportChain(
     if (
       importer.endsWith('.vue') ||
       // explicitly accepted by this importer
+      // wk importer（被importee使用的模块）的hmrAcceptanceMap里有importee
       isHmrAccepted(importer, importee) ||
       // importer is a self accepting module
+      // wk importer在自己的hmrAcceptanceMa里
       isHmrAccepted(importer, importer)
     ) {
       // vue boundaries are considered dirty for the reload
@@ -216,8 +220,9 @@ function walkImportChain(
       hmrBoundaries.add(importer)
       currentChain.forEach((file) => dirtyFiles.add(file))
     } else {
-      const parentImpoters = importerMap.get(importer)
+      const parentImpoters = importerMap.get(importer) // wk 获取被importer（被当前importee使用的模块）使用的模块
       if (!parentImpoters) {
+        // wk dead end
         return true
       } else if (!currentChain.includes(importer)) {
         if (
@@ -237,6 +242,7 @@ function walkImportChain(
   return false
 }
 
+// wk 在importer 的hmrAcceptanceMap里
 function isHmrAccepted(importer: string, dep: string): boolean {
   const deps = hmrAcceptanceMap.get(importer)
   return deps ? deps.has(dep) : false
@@ -420,6 +426,7 @@ export function rewriteFileWithHMR(
 }
 
 function isMetaHot(node: Node) {
+  // wk import.meta.hot
   return (
     node.type === 'MemberExpression' &&
     node.object.type === 'MetaProperty' &&
