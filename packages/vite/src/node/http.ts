@@ -90,6 +90,7 @@ export interface CorsOptions {
 
 export type CorsOrigin = boolean | string | RegExp | (string | RegExp)[]
 
+// wk 起一个http server
 export async function resolveHttpServer(
   { proxy }: CommonServerOptions,
   app: Connect.Server,

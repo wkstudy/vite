@@ -232,6 +232,7 @@ async function createDepsOptimizer(
               // run on the background, but we wait until crawling has ended
               // to decide if we send this result to the browser or we need to
               // do another optimize step
+              //  wk 调esbuild进行预构建
               postScanOptimizationResult = runOptimizeDeps(config, knownDeps)
             }
           } catch (e) {

@@ -445,6 +445,7 @@ export function depsLogString(qualifiedIds: string[]): string {
 /**
  * Internally, Vite uses this function to prepare a optimizeDeps run. When Vite starts, we can get
  * the metadata and start the server without waiting for the optimizeDeps processing to be completed
+ *  wk 调esbuild进行预构建
  */
 export async function runOptimizeDeps(
   resolvedConfig: ResolvedConfig,

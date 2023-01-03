@@ -312,7 +312,7 @@ export interface ResolvedServerUrls {
   local: string[]
   network: string[]
 }
-
+// wk vite server 入口
 export async function createServer(
   inlineConfig: InlineConfig = {},
 ): Promise<ViteDevServer> {
@@ -321,15 +321,18 @@ export async function createServer(
   const httpsOptions = await resolveHttpsConfig(config.server.https)
   const { middlewareMode } = serverConfig
 
+  // wk watch模式下 config
   const resolvedWatchOptions = resolveChokidarOptions(config, {
     disableGlobbing: true,
     ...serverConfig.watch,
   })
 
+  // wk Connect is an extensible HTTP server framework for node using "plugins" known as middleware.
   const middlewares = connect() as Connect.Server
   const httpServer = middlewareMode
     ? null
     : await resolveHttpServer(serverConfig, middlewares, httpsOptions)
+  // wk 起 websocket,支持后续的hmr
   const ws = createWebSocketServer(httpServer, config, httpsOptions)
 
   if (httpServer) {
@@ -345,6 +348,7 @@ export async function createServer(
     container.resolveId(url, undefined, { ssr }),
   )
 
+  // wk 插件执行环境 用户使用的插件都是由container调用的
   const container = await createPluginContainer(config, moduleGraph, watcher)
   const closeHttpServer = createServerCloseFn(httpServer)
 
@@ -482,7 +486,7 @@ export async function createServer(
     }
     return setPackageData(id, pkg)
   }
-
+  // wk ------------------------- HMR相关逻辑 START
   watcher.on('change', async (file) => {
     file = normalizePath(file)
     if (file.endsWith('/package.json')) {
@@ -528,7 +532,7 @@ export async function createServer(
       )
     }
   })
-
+  // wk ------------------------- HMR相关逻辑 END
   if (!middlewareMode && httpServer) {
     httpServer.once('listening', () => {
       // update actual port since this may be different from initial value
@@ -593,6 +597,7 @@ export async function createServer(
   // run post config hooks
   // This is applied before the html middleware so that user middleware can
   // serve custom content instead of index.html.
+  // wk 用户的plugins在这里执行
   postHooks.forEach((fn) => fn && fn())
 
   if (config.appType === 'spa' || config.appType === 'mpa') {
@@ -620,7 +625,10 @@ export async function createServer(
       return initingServer
     }
     initingServer = (async function () {
+      // wk 初始化server
+      //  wk step1 执行buildStart hook
       await container.buildStart({})
+      // wk step2 执行预购建
       if (isDepsOptimizerEnabled(config, false)) {
         // non-ssr
         await initDepsOptimizer(config, server)
